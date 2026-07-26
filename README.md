@@ -5,11 +5,10 @@ Paste a URL (or raw page text), and get back a Generative Engine Optimization
 buckets, prioritized findings, a ready-to-publish GEO-optimized rewrite
 (Markdown), and an annotated wireframe of the recommended page structure.
 
-See `GEOOptimizerPRD.md`-equivalent scope in the project history for full
-requirements. This is the Phase 1 (v1) MVP: single-URL analysis, stateless
-(no database). Competitor search ships as a feature-flagged stub (see below).
-Live-answer AI-engine testing is out of scope for v1 entirely — not built,
-not stubbed.
+See [`GEOOptimizerPRD.md`](./GEOOptimizerPRD.md) for full requirements. This is
+the Phase 1 (v1) MVP: single-URL analysis, stateless (no database). Competitor
+search ships as a feature-flagged stub (see below). Live-answer AI-engine
+testing is out of scope for v1 entirely — not built, not stubbed.
 
 ## Getting started
 
