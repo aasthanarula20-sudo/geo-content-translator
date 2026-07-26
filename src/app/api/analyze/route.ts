@@ -19,7 +19,6 @@ import {
   technicalScoreFromFindings,
 } from "@/lib/scoring";
 import { stubCompetitorAnalysis } from "@/lib/competitor";
-import { runLiveAnswerTest } from "@/lib/liveAnswerTest";
 import { buildWireframeAnnotations } from "@/lib/wireframe";
 import type { AnalysisReport, Bucket, Finding } from "@/lib/types";
 
@@ -191,7 +190,6 @@ export async function POST(request: Request) {
   const rewriteMarkdown = await generateRewriteWithClaude(extracted, contentType, allFindings, finalUrl);
 
   const competitor = stubCompetitorAnalysis();
-  const liveAnswerTest = await runLiveAnswerTest();
   const wireframeAnnotations = buildWireframeAnnotations(contentType);
 
   if (!crawlerAccessibility.gatePassed) {
@@ -214,7 +212,6 @@ export async function POST(request: Request) {
       technical: technicalFindings,
     },
     competitor,
-    liveAnswerTest,
     actionItems,
     rewriteMarkdown,
     wireframeAnnotations,

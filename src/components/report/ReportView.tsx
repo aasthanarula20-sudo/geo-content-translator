@@ -4,7 +4,6 @@ import { BucketBars } from "./BucketBars";
 import { FindingsSection } from "./FindingsSection";
 import { ActionList } from "./ActionList";
 import { CompetitiveSection } from "./CompetitiveSection";
-import { LiveAnswerSection } from "./LiveAnswerSection";
 import { Wireframe } from "./Wireframe";
 import { RewriteExport } from "./RewriteExport";
 import { PdfExportButton } from "./PdfExportButton";
@@ -25,7 +24,6 @@ export function ReportView({ report, onReset }: { report: AnalysisReport; onRese
       <div id="geo-report" className="flex flex-col gap-6">
         <ScoreHeader report={report} />
         <BucketBars bucketScores={report.bucketScores} />
-        <LiveAnswerSection liveAnswerTest={report.liveAnswerTest} />
         <FindingsSection title="Content Findings" findings={report.findings.content} />
         <FindingsSection title="Entity & Credibility Findings" findings={report.findings.credibility} />
         <FindingsSection title="Technical Findings" findings={report.findings.technical} />

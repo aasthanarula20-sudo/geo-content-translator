@@ -7,8 +7,9 @@ buckets, prioritized findings, a ready-to-publish GEO-optimized rewrite
 
 See `GEOOptimizerPRD.md`-equivalent scope in the project history for full
 requirements. This is the Phase 1 (v1) MVP: single-URL analysis, stateless
-(no database), competitor search and live-answer testing shipped as
-feature-flagged stubs (see below).
+(no database). Competitor search ships as a feature-flagged stub (see below).
+Live-answer AI-engine testing is out of scope for v1 entirely — not built,
+not stubbed.
 
 ## Getting started
 
@@ -27,7 +28,6 @@ Open [http://localhost:3000](http://localhost:3000).
 |---|---|---|
 | `ANTHROPIC_API_KEY` | Yes | Powers content-type detection, substance/structure/credibility scoring judgment, and the GEO rewrite generation. Get one at [console.anthropic.com](https://console.anthropic.com/). |
 | `ANTHROPIC_MODEL` | No (defaults to `claude-sonnet-5`) | Override the model used for analysis/rewrite calls. |
-| `LIVE_ANSWER_TEST_ENABLED` | No (defaults to `false`) | Ships built but off, per the PRD — flip to `true` once you have paid API access to an AI answer engine to test against. Not yet implemented past the flag. |
 
 Without `ANTHROPIC_API_KEY` set, `/api/analyze` returns a clear
 `missing_api_key` error — the rest of the pipeline (fetch, content
@@ -49,9 +49,8 @@ extraction, rules-based checks) still runs.
      (`src/lib/claude.ts`).
   5. Weighted scoring and a prioritized (tier/impact/effort/owner) action list
      (`src/lib/scoring.ts`).
-  6. Stubbed competitor analysis (`src/lib/competitor.ts`) and feature-flagged
-     live-answer test (`src/lib/liveAnswerTest.ts`) — both wired into the report
-     shape now so Phase 2 doesn't need a rewrite.
+  6. Stubbed competitor analysis (`src/lib/competitor.ts`) — wired into the
+     report shape now so Phase 2 doesn't need a rewrite.
 - **Exports:** Markdown download of the rewrite, client-side PDF export of the
   report (`jspdf` + `html2canvas`, no server-side rendering needed).
 
@@ -60,6 +59,4 @@ extraction, rules-based checks) still runs.
 - No competitor search — needs a search API key (Brave Search / Serper); the
   report shows a placeholder in that section until wired in.
 - No accounts, history, or bulk URL analysis (Phase 2/3 per the PRD).
-- Live-answer AI-engine testing is scaffolded but not implemented — flip
-  `LIVE_ANSWER_TEST_ENABLED` and fill in `runLiveAnswerTest()` once you have
-  API access to test with.
+- No live-answer AI-engine testing — decided out of scope for v1 (Phase 2).

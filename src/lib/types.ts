@@ -55,16 +55,6 @@ export interface CompetitorFinding {
   gap: string;
 }
 
-export interface LiveAnswerResult {
-  enabled: boolean;
-  note: string;
-  results?: {
-    question: string;
-    original: { presence: boolean; attribution: string; faithfulness: string };
-    rewritten: { presence: boolean; attribution: string; faithfulness: string };
-  }[];
-}
-
 export interface AnalysisReport {
   url: string;
   fetchedVia: "url" | "pasted";
@@ -83,7 +73,6 @@ export interface AnalysisReport {
     note: string;
     findings: CompetitorFinding[];
   };
-  liveAnswerTest: LiveAnswerResult;
   actionItems: ActionItem[];
   rewriteMarkdown: string;
   wireframeAnnotations: { block: string; note: string }[];
