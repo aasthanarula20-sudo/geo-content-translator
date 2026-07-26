@@ -22,6 +22,11 @@ import { stubCompetitorAnalysis } from "@/lib/competitor";
 import { buildWireframeAnnotations } from "@/lib/wireframe";
 import type { AnalysisReport, Bucket, Finding } from "@/lib/types";
 
+// The pipeline makes two sequential Claude calls (analysis + rewrite) on top
+// of fetching the page, which can comfortably exceed Vercel's default
+// serverless timeout. Extend it (60s is the max on the Hobby plan).
+export const maxDuration = 60;
+
 const MIN_WORD_COUNT = 40;
 
 const requestSchema = z

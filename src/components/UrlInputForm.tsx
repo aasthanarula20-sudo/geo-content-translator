@@ -34,11 +34,11 @@ export function UrlInputForm({ onSubmitUrl, onSubmitRawText, disabled, suggestPa
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto flex flex-col gap-4">
+    <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
-          GEO Content Optimizer
-        </h1>
+        <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
+          {pasteMode ? "Paste page content" : "Enter a page URL"}
+        </span>
         <button
           type="button"
           onClick={() => setPasteMode((v) => !v)}
