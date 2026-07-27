@@ -5,6 +5,7 @@ import { UrlInputForm } from "@/components/UrlInputForm";
 import { LoadingProgress } from "@/components/LoadingProgress";
 import { ReportView } from "@/components/report/ReportView";
 import { FeatureHighlights } from "@/components/FeatureHighlights";
+import { MOCK_REPORT } from "@/lib/mockReport";
 import type { AnalysisReport } from "@/lib/types";
 
 type Status = "idle" | "loading" | "report" | "error";
@@ -14,6 +15,7 @@ const REQUEST_TIMEOUT_MS = 55_000;
 export default function Home() {
   const [status, setStatus] = useState<Status>("idle");
   const [report, setReport] = useState<AnalysisReport | null>(null);
+  const [isDemo, setIsDemo] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [suggestPaste, setSuggestPaste] = useState(false);
 
@@ -40,6 +42,7 @@ export default function Home() {
         return;
       }
       setReport(data as AnalysisReport);
+      setIsDemo(false);
       setStatus("report");
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
@@ -57,9 +60,17 @@ export default function Home() {
     }
   };
 
+  const viewSampleReport = () => {
+    setReport(MOCK_REPORT);
+    setIsDemo(true);
+    setErrorMessage(null);
+    setStatus("report");
+  };
+
   const reset = () => {
     setStatus("idle");
     setReport(null);
+    setIsDemo(false);
     setErrorMessage(null);
   };
 
@@ -92,12 +103,24 @@ export default function Home() {
                 <LoadingProgress />
               </div>
             )}
+            {status !== "loading" && (
+              <p className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
+                Not set up with an API key yet?{" "}
+                <button
+                  onClick={viewSampleReport}
+                  className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                >
+                  View a sample report
+                </button>{" "}
+                — free, no key needed.
+              </p>
+            )}
           </div>
 
           {status === "idle" && <FeatureHighlights />}
         </div>
       ) : (
-        report && <ReportView report={report} onReset={reset} />
+        report && <ReportView report={report} onReset={reset} isDemo={isDemo} />
       )}
     </div>
   );
