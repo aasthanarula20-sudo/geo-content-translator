@@ -87,7 +87,7 @@ export function UrlInputForm({ onSubmitUrl, onSubmitRawText, disabled, suggestPa
       <button
         type="submit"
         disabled={disabled || (pasteMode ? rawText.trim().length === 0 : !isValid(url))}
-        className="group w-full rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 disabled:from-slate-300 disabled:to-slate-300 dark:disabled:from-slate-700 dark:disabled:to-slate-700 disabled:cursor-not-allowed text-white text-lg font-semibold py-4 shadow-lg shadow-blue-600/20 hover:shadow-xl hover:shadow-blue-600/30 disabled:shadow-none transition-all flex items-center justify-center gap-2"
+        className="group w-full rounded-xl bg-amber-400 hover:bg-amber-500 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:cursor-not-allowed text-slate-900 text-lg font-semibold py-4 shadow-lg shadow-amber-400/30 hover:shadow-xl hover:shadow-amber-400/40 disabled:shadow-none transition-all flex items-center justify-center gap-2"
       >
         {disabled ? "Analyzing…" : (
           <>

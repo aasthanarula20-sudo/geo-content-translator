@@ -1,32 +1,25 @@
 "use client";
 
-import type { ProgressStep } from "@/lib/progressEvents";
+import { useEffect, useState } from "react";
 
-export function LoadingProgress({ steps }: { steps: ProgressStep[] }) {
+export function LoadingProgress() {
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    const start = Date.now();
+    const interval = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - start) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <div className="w-full max-w-2xl mx-auto flex flex-col gap-3">
-      {steps.length === 0 && (
-        <div className="flex items-center gap-3 text-sm">
-          <span className="h-2.5 w-2.5 rounded-full bg-blue-500 animate-pulse" />
-          <span className="text-slate-500 dark:text-slate-400">Starting…</span>
-        </div>
-      )}
-      {steps.map((s, i) => {
-        const isLast = i === steps.length - 1;
-        return (
-          <div key={`${s.step}-${i}`} className="flex items-start gap-3 text-sm">
-            <span
-              className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${
-                isLast ? "bg-blue-500 animate-pulse" : "bg-green-500"
-              }`}
-            />
-            <div>
-              <p className="text-slate-900 dark:text-slate-100 font-medium">{s.step}</p>
-              <p className="text-slate-500 dark:text-slate-400">{s.detail}</p>
-            </div>
-          </div>
-        );
-      })}
+    <div className="flex flex-col items-center gap-3 py-4">
+      <span className="h-9 w-9 rounded-full border-[3px] border-blue-500 border-t-transparent animate-spin" />
+      <p className="text-slate-900 dark:text-slate-100 font-medium">We&apos;re analyzing your page…</p>
+      <p className="text-sm text-slate-500 dark:text-slate-400">
+        {elapsed}s elapsed — this usually takes 20-60 seconds
+      </p>
     </div>
   );
 }

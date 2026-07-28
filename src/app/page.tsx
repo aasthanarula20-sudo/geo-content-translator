@@ -6,7 +6,7 @@ import { LoadingProgress } from "@/components/LoadingProgress";
 import { ReportView } from "@/components/report/ReportView";
 import { FeatureHighlights } from "@/components/FeatureHighlights";
 import { MOCK_REPORT } from "@/lib/mockReport";
-import type { ProgressEvent, ProgressStep } from "@/lib/progressEvents";
+import type { ProgressEvent } from "@/lib/progressEvents";
 import type { AnalysisReport } from "@/lib/types";
 
 type Status = "idle" | "loading" | "report" | "error";
@@ -19,23 +19,11 @@ export default function Home() {
   const [isDemo, setIsDemo] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [suggestPaste, setSuggestPaste] = useState(false);
-  const [progressSteps, setProgressSteps] = useState<ProgressStep[]>([]);
-
-  const appendProgress = (event: Extract<ProgressEvent, { type: "progress" }>) => {
-    setProgressSteps((prev) => {
-      const last = prev[prev.length - 1];
-      if (last && last.step === event.step) {
-        return [...prev.slice(0, -1), { step: event.step, detail: event.detail }];
-      }
-      return [...prev, { step: event.step, detail: event.detail }];
-    });
-  };
 
   const runAnalysis = async (payload: { url?: string; rawText?: string }) => {
     setStatus("loading");
     setErrorMessage(null);
     setSuggestPaste(false);
-    setProgressSteps([]);
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -78,9 +66,7 @@ export default function Home() {
         for (const line of lines) {
           if (!line.trim()) continue;
           const event = JSON.parse(line) as ProgressEvent;
-          if (event.type === "progress") {
-            appendProgress(event);
-          } else if (event.type === "done") {
+          if (event.type === "done") {
             setReport(event.report);
             setIsDemo(false);
             setStatus("report");
@@ -126,7 +112,6 @@ export default function Home() {
     setReport(null);
     setIsDemo(false);
     setErrorMessage(null);
-    setProgressSteps([]);
   };
 
   return (
@@ -155,7 +140,7 @@ export default function Home() {
             />
             {status === "loading" && (
               <div className="mt-8">
-                <LoadingProgress steps={progressSteps} />
+                <LoadingProgress />
               </div>
             )}
             {status !== "loading" && (
