@@ -1,6 +1,12 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { ContentType, ExtractedContent, Finding } from "./types";
-import { CONTENT_TYPES, buildAnalysisPrompt, buildRewritePrompt, extractJson } from "./promptTemplates";
+import {
+  buildAnalysisPrompt,
+  buildRewritePrompt,
+  extractJson,
+  normalizeLlmAnalysis,
+  type NormalizedLlmAnalysis,
+} from "./promptTemplates";
 
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
 
@@ -15,14 +21,7 @@ function getClient(): Anthropic {
   return client;
 }
 
-export interface LlmAnalysis {
-  contentType: ContentType;
-  contentSubstanceScore: number;
-  topicStructureScore: number;
-  entityCredibilityScore: number;
-  freshnessFanoutScore: number;
-  findings: Finding[];
-}
+export type LlmAnalysis = NormalizedLlmAnalysis;
 
 export async function analyzeContentWithClaude(
   extracted: ExtractedContent,
@@ -42,11 +41,7 @@ export async function analyzeContentWithClaude(
     throw new Error("Claude did not return a text response for content analysis.");
   }
 
-  const parsed = extractJson(textBlock.text) as LlmAnalysis;
-  if (!CONTENT_TYPES.includes(parsed.contentType)) {
-    parsed.contentType = "narrative_editorial";
-  }
-  return parsed;
+  return normalizeLlmAnalysis(extractJson(textBlock.text));
 }
 
 export async function generateRewriteWithClaude(

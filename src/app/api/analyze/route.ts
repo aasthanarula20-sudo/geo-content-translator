@@ -72,6 +72,28 @@ export async function POST(request: Request) {
     );
   }
 
+  try {
+    return await runPipeline(url, rawText, provider);
+  } catch (err) {
+    // Safety net: any unexpected exception anywhere in the pipeline still
+    // returns valid JSON instead of a raw crash page the client can't parse.
+    return NextResponse.json(
+      {
+        error: {
+          code: "unexpected_error",
+          message: err instanceof Error ? err.message : "Something went wrong during analysis.",
+        },
+      },
+      { status: 500 }
+    );
+  }
+}
+
+async function runPipeline(
+  url: string | undefined,
+  rawText: string | undefined,
+  provider: NonNullable<ReturnType<typeof getActiveProvider>>
+): Promise<Response> {
   const warnings: string[] = [];
   let extracted;
   let fetchedVia: "url" | "pasted" = "pasted";

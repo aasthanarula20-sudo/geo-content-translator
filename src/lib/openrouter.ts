@@ -1,5 +1,5 @@
 import type { ContentType, ExtractedContent, Finding } from "./types";
-import { CONTENT_TYPES, buildAnalysisPrompt, buildRewritePrompt, extractJson } from "./promptTemplates";
+import { buildAnalysisPrompt, buildRewritePrompt, extractJson, normalizeLlmAnalysis } from "./promptTemplates";
 import type { LlmAnalysis } from "./claude";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
@@ -52,12 +52,7 @@ export async function analyzeContentWithOpenRouter(
 ): Promise<LlmAnalysis> {
   const prompt = buildAnalysisPrompt(extracted, url);
   const text = await callOpenRouter(prompt, 4000);
-
-  const parsed = extractJson(text) as LlmAnalysis;
-  if (!CONTENT_TYPES.includes(parsed.contentType)) {
-    parsed.contentType = "narrative_editorial";
-  }
-  return parsed;
+  return normalizeLlmAnalysis(extractJson(text));
 }
 
 export async function generateRewriteWithOpenRouter(

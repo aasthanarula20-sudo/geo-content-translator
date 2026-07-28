@@ -1,4 +1,4 @@
-import type { ContentType, ExtractedContent, Finding } from "./types";
+import type { Bucket, ContentType, ExtractedContent, Finding, Severity } from "./types";
 
 export const CONTENT_TYPES: ContentType[] = [
   "definition",
@@ -9,10 +9,82 @@ export const CONTENT_TYPES: ContentType[] = [
   "local_business",
 ];
 
+const ANALYSIS_BUCKETS: Bucket[] = [
+  "content_substance",
+  "topic_structure",
+  "entity_credibility",
+  "freshness_fanout",
+];
+const SEVERITIES: Severity[] = ["pass", "warning", "fail"];
+
 export function extractJson(text: string): unknown {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   const candidate = fenced ? fenced[1] : text;
   return JSON.parse(candidate.trim());
+}
+
+export interface NormalizedLlmAnalysis {
+  contentType: ContentType;
+  contentSubstanceScore: number;
+  topicStructureScore: number;
+  entityCredibilityScore: number;
+  freshnessFanoutScore: number;
+  findings: Finding[];
+}
+
+function toScore(value: unknown, fallback = 50): number {
+  // Deliberately not a blind Number(value) coercion — Number(null) is 0 and
+  // Number("") is 0, which would silently pass off a missing field as a
+  // real (and misleadingly low) score instead of falling back.
+  let n: number;
+  if (typeof value === "number") {
+    n = value;
+  } else if (typeof value === "string" && value.trim() !== "") {
+    n = Number(value);
+  } else {
+    return fallback;
+  }
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(0, Math.min(100, Math.round(n)));
+}
+
+function toText(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+
+/**
+ * Free/weaker LLMs are far less reliable than Claude at returning exactly the
+ * JSON shape asked for — missing fields, wrong types, or a findings array
+ * that isn't an array at all. Normalize whatever comes back into a shape the
+ * rest of the pipeline can safely consume, instead of trusting a raw cast
+ * that can crash downstream with an unhandled exception.
+ */
+export function normalizeLlmAnalysis(raw: unknown): NormalizedLlmAnalysis {
+  const obj = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+
+  const contentType = CONTENT_TYPES.includes(obj.contentType as ContentType)
+    ? (obj.contentType as ContentType)
+    : "narrative_editorial";
+
+  const rawFindings = Array.isArray(obj.findings) ? obj.findings : [];
+  const findings: Finding[] = rawFindings
+    .filter((f): f is Record<string, unknown> => !!f && typeof f === "object")
+    .map((f) => ({
+      bucket: ANALYSIS_BUCKETS.includes(f.bucket as Bucket) ? (f.bucket as Bucket) : "content_substance",
+      title: toText(f.title, "Untitled finding"),
+      detail: toText(f.detail, "No detail provided."),
+      why: toText(f.why, "Not specified."),
+      severity: SEVERITIES.includes(f.severity as Severity) ? (f.severity as Severity) : "warning",
+    }));
+
+  return {
+    contentType,
+    contentSubstanceScore: toScore(obj.contentSubstanceScore),
+    topicStructureScore: toScore(obj.topicStructureScore),
+    entityCredibilityScore: toScore(obj.entityCredibilityScore),
+    freshnessFanoutScore: toScore(obj.freshnessFanoutScore),
+    findings,
+  };
 }
 
 export function buildAnalysisPrompt(extracted: ExtractedContent, url: string): string {
