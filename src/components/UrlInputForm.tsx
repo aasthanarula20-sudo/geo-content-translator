@@ -87,9 +87,14 @@ export function UrlInputForm({ onSubmitUrl, onSubmitRawText, disabled, suggestPa
       <button
         type="submit"
         disabled={disabled || (pasteMode ? rawText.trim().length === 0 : !isValid(url))}
-        className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-medium py-3 transition-colors"
+        className="group w-full rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 disabled:from-slate-300 disabled:to-slate-300 dark:disabled:from-slate-700 dark:disabled:to-slate-700 disabled:cursor-not-allowed text-white text-lg font-semibold py-4 shadow-lg shadow-blue-600/20 hover:shadow-xl hover:shadow-blue-600/30 disabled:shadow-none transition-all flex items-center justify-center gap-2"
       >
-        {disabled ? "Analyzing..." : "Analyze"}
+        {disabled ? "Analyzing…" : (
+          <>
+            Analyze
+            <span className="transition-transform group-hover:translate-x-1">→</span>
+          </>
+        )}
       </button>
     </form>
   );

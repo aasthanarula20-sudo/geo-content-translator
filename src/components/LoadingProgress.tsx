@@ -1,49 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import type { ProgressStep } from "@/lib/progressEvents";
 
-const STEPS = [
-  "Fetching page",
-  "Analyzing content",
-  "Checking technical factors",
-  "Finding competitors",
-  "Generating report",
-];
-
-export function LoadingProgress() {
-  const [stepIndex, setStepIndex] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setStepIndex((i) => Math.min(i + 1, STEPS.length - 1));
-    }, 3500);
-    return () => clearInterval(interval);
-  }, []);
-
+export function LoadingProgress({ steps }: { steps: ProgressStep[] }) {
   return (
     <div className="w-full max-w-2xl mx-auto flex flex-col gap-3">
-      {STEPS.map((step, i) => (
-        <div key={step} className="flex items-center gap-3 text-sm">
-          <span
-            className={`h-2.5 w-2.5 rounded-full ${
-              i < stepIndex
-                ? "bg-green-500"
-                : i === stepIndex
-                  ? "bg-blue-500 animate-pulse"
-                  : "bg-slate-300 dark:bg-slate-700"
-            }`}
-          />
-          <span
-            className={
-              i <= stepIndex
-                ? "text-slate-900 dark:text-slate-100"
-                : "text-slate-400 dark:text-slate-600"
-            }
-          >
-            {step}
-          </span>
+      {steps.length === 0 && (
+        <div className="flex items-center gap-3 text-sm">
+          <span className="h-2.5 w-2.5 rounded-full bg-blue-500 animate-pulse" />
+          <span className="text-slate-500 dark:text-slate-400">Starting…</span>
         </div>
-      ))}
+      )}
+      {steps.map((s, i) => {
+        const isLast = i === steps.length - 1;
+        return (
+          <div key={`${s.step}-${i}`} className="flex items-start gap-3 text-sm">
+            <span
+              className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${
+                isLast ? "bg-blue-500 animate-pulse" : "bg-green-500"
+              }`}
+            />
+            <div>
+              <p className="text-slate-900 dark:text-slate-100 font-medium">{s.step}</p>
+              <p className="text-slate-500 dark:text-slate-400">{s.detail}</p>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { LoadingProgress } from "@/components/LoadingProgress";
 import { ReportView } from "@/components/report/ReportView";
 import { FeatureHighlights } from "@/components/FeatureHighlights";
 import { MOCK_REPORT } from "@/lib/mockReport";
+import type { ProgressEvent, ProgressStep } from "@/lib/progressEvents";
 import type { AnalysisReport } from "@/lib/types";
 
 type Status = "idle" | "loading" | "report" | "error";
@@ -18,11 +19,23 @@ export default function Home() {
   const [isDemo, setIsDemo] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [suggestPaste, setSuggestPaste] = useState(false);
+  const [progressSteps, setProgressSteps] = useState<ProgressStep[]>([]);
+
+  const appendProgress = (event: Extract<ProgressEvent, { type: "progress" }>) => {
+    setProgressSteps((prev) => {
+      const last = prev[prev.length - 1];
+      if (last && last.step === event.step) {
+        return [...prev.slice(0, -1), { step: event.step, detail: event.detail }];
+      }
+      return [...prev, { step: event.step, detail: event.detail }];
+    });
+  };
 
   const runAnalysis = async (payload: { url?: string; rawText?: string }) => {
     setStatus("loading");
     setErrorMessage(null);
     setSuggestPaste(false);
+    setProgressSteps([]);
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -34,16 +47,57 @@ export default function Home() {
         body: JSON.stringify(payload),
         signal: controller.signal,
       });
-      const data = await res.json();
+
       if (!res.ok) {
+        // Early, non-streamed errors (bad request / missing provider) — plain JSON.
+        const data = await res.json();
         setErrorMessage(data.error?.message || "Something went wrong analyzing this page.");
         setSuggestPaste(!!data.error?.canPasteInstead);
         setStatus("error");
         return;
       }
-      setReport(data as AnalysisReport);
-      setIsDemo(false);
-      setStatus("report");
+
+      if (!res.body) {
+        setErrorMessage("The server didn't return a response body. Try again.");
+        setStatus("error");
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let settled = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          const event = JSON.parse(line) as ProgressEvent;
+          if (event.type === "progress") {
+            appendProgress(event);
+          } else if (event.type === "done") {
+            setReport(event.report);
+            setIsDemo(false);
+            setStatus("report");
+            settled = true;
+          } else if (event.type === "error") {
+            setErrorMessage(event.error.message);
+            setSuggestPaste(!!event.error.canPasteInstead);
+            setStatus("error");
+            settled = true;
+          }
+        }
+      }
+
+      if (!settled) {
+        setErrorMessage("The connection ended before the analysis finished. Try again.");
+        setStatus("error");
+      }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
         setErrorMessage(
@@ -72,6 +126,7 @@ export default function Home() {
     setReport(null);
     setIsDemo(false);
     setErrorMessage(null);
+    setProgressSteps([]);
   };
 
   return (
@@ -100,7 +155,7 @@ export default function Home() {
             />
             {status === "loading" && (
               <div className="mt-8">
-                <LoadingProgress />
+                <LoadingProgress steps={progressSteps} />
               </div>
             )}
             {status !== "loading" && (
