@@ -10,7 +10,7 @@ import {
   checkStructuralElements,
 } from "@/lib/checks/contentRules";
 import { checkAuthorBox, checkLastUpdated } from "@/lib/checks/credibility";
-import { analyzeContentWithClaude, generateRewriteWithClaude } from "@/lib/claude";
+import { analyzeContent, generateRewrite, getActiveProvider } from "@/lib/llm";
 import {
   adjustScoreWithFindings,
   buildActionList,
@@ -22,7 +22,7 @@ import { stubCompetitorAnalysis } from "@/lib/competitor";
 import { buildWireframeAnnotations } from "@/lib/wireframe";
 import type { AnalysisReport, Bucket, Finding } from "@/lib/types";
 
-// The pipeline makes two sequential Claude calls (analysis + rewrite) on top
+// The pipeline makes two sequential LLM calls (analysis + rewrite) on top
 // of fetching the page, which can comfortably exceed Vercel's default
 // serverless timeout. Extend it (60s is the max on the Hobby plan).
 export const maxDuration = 60;
@@ -106,21 +106,40 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
+  const provider = getActiveProvider();
+  if (!provider) {
     return NextResponse.json(
       {
         error: {
           code: "missing_api_key",
           message:
-            "ANTHROPIC_API_KEY is not configured on the server. Add it to .env.local to enable analysis.",
+            "No AI provider is configured on the server. Add ANTHROPIC_API_KEY (or OPENROUTER_API_KEY for free-tier testing) to .env.local to enable analysis.",
         },
       },
       { status: 500 }
     );
   }
+  if (provider === "openrouter") {
+    warnings.push(
+      "This analysis used a free OpenRouter model for testing, not Claude — quality (especially the rewrite) will be noticeably lower than production results. Set ANTHROPIC_API_KEY to switch to Claude."
+    );
+  }
 
-  const claudeAnalysis = await analyzeContentWithClaude(extracted, finalUrl);
-  const contentType = claudeAnalysis.contentType;
+  let llmAnalysis;
+  try {
+    llmAnalysis = await analyzeContent(extracted, finalUrl);
+  } catch (err) {
+    return NextResponse.json(
+      {
+        error: {
+          code: "llm_analysis_failed",
+          message: err instanceof Error ? err.message : "The AI analysis step failed.",
+        },
+      },
+      { status: 502 }
+    );
+  }
+  const contentType = llmAnalysis.contentType;
 
   const crawlerAccessibility = url
     ? checkCrawlerAccessibility(robotsTxt, llmsTxt)
@@ -146,35 +165,35 @@ export async function POST(request: Request) {
 
   const technicalFindings: Finding[] = evaluateSchema(extracted.jsonLd, contentType);
 
-  const claudeContentFindings = claudeAnalysis.findings.filter(
+  const llmContentFindings = llmAnalysis.findings.filter(
     (f) => f.bucket === "content_substance" || f.bucket === "topic_structure"
   );
-  const claudeCredibilityFindings = claudeAnalysis.findings.filter(
+  const llmCredibilityFindings = llmAnalysis.findings.filter(
     (f) => f.bucket === "entity_credibility" || f.bucket === "freshness_fanout"
   );
 
   const contentFindings = [
     ...ruleContentFindings.filter((f) => f.bucket === "content_substance"),
-    ...claudeContentFindings.filter((f) => f.bucket === "content_substance"),
+    ...llmContentFindings.filter((f) => f.bucket === "content_substance"),
     ...ruleContentFindings.filter((f) => f.bucket === "topic_structure"),
-    ...claudeContentFindings.filter((f) => f.bucket === "topic_structure"),
+    ...llmContentFindings.filter((f) => f.bucket === "topic_structure"),
   ];
-  const credibilityFindings = [...ruleCredibilityFindings, ...claudeCredibilityFindings];
+  const credibilityFindings = [...ruleCredibilityFindings, ...llmCredibilityFindings];
 
   const contentSubstanceBucketScore = adjustScoreWithFindings(
-    claudeAnalysis.contentSubstanceScore,
+    llmAnalysis.contentSubstanceScore,
     ruleContentFindings.filter((f) => f.bucket === "content_substance")
   );
   const topicStructureBucketScore = adjustScoreWithFindings(
-    claudeAnalysis.topicStructureScore,
+    llmAnalysis.topicStructureScore,
     ruleContentFindings.filter((f) => f.bucket === "topic_structure")
   );
   const entityCredibilityBucketScore = adjustScoreWithFindings(
-    claudeAnalysis.entityCredibilityScore,
+    llmAnalysis.entityCredibilityScore,
     ruleCredibilityFindings.filter((f) => f.bucket === "entity_credibility")
   );
   const freshnessFanoutBucketScore = adjustScoreWithFindings(
-    claudeAnalysis.freshnessFanoutScore,
+    llmAnalysis.freshnessFanoutScore,
     ruleCredibilityFindings.filter((f) => f.bucket === "freshness_fanout")
   );
   const technicalBucketScore = technicalScoreFromFindings(technicalFindings);
@@ -192,7 +211,20 @@ export async function POST(request: Request) {
   const allFindings = [...contentFindings, ...credibilityFindings, ...technicalFindings];
   const actionItems = buildActionList(allFindings);
 
-  const rewriteMarkdown = await generateRewriteWithClaude(extracted, contentType, allFindings, finalUrl);
+  let rewriteMarkdown: string;
+  try {
+    rewriteMarkdown = await generateRewrite(extracted, contentType, allFindings, finalUrl);
+  } catch (err) {
+    return NextResponse.json(
+      {
+        error: {
+          code: "llm_rewrite_failed",
+          message: err instanceof Error ? err.message : "The rewrite generation step failed.",
+        },
+      },
+      { status: 502 }
+    );
+  }
 
   const competitor = stubCompetitorAnalysis();
   const wireframeAnnotations = buildWireframeAnnotations(contentType);
