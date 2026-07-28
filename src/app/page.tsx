@@ -105,7 +105,7 @@ export default function Home() {
             )}
             {status !== "loading" && (
               <p className="mt-4 text-center text-sm text-slate-500 dark:text-slate-400">
-                Not set up with an API key yet?{" "}
+                Want to see what a report looks like first?{" "}
                 <button
                   onClick={viewSampleReport}
                   className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
