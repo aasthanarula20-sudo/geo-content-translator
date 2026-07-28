@@ -27,39 +27,52 @@ export default function Home() {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
+    let res: Response;
     try {
-      const res = await fetch("/api/analyze", {
+      res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
         signal: controller.signal,
       });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setErrorMessage(data.error?.message || "Something went wrong analyzing this page.");
-        setSuggestPaste(!!data.error?.canPasteInstead);
-        setStatus("error");
-        return;
-      }
-
-      setReport(data as AnalysisReport);
-      setIsDemo(false);
-      setStatus("report");
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
         setErrorMessage(
-          "This is taking longer than expected (over 55 seconds). Long pages and the AI rewrite step can take a while — try again, or try a shorter page."
+          "This is taking longer than expected (over 55 seconds). Long pages, slow AI providers, and the rewrite step can take a while — try again, try a shorter page, or paste a short excerpt of text instead to test."
         );
       } else {
         setErrorMessage(
-          "Couldn't reach the server. Check your connection and try again — if it keeps happening, the app may not be deployed correctly."
+          "Couldn't reach the server at all — this usually means no internet connection, or the site isn't deployed. Check your connection and try again."
         );
       }
       setStatus("error");
-    } finally {
       clearTimeout(timeout);
+      return;
     }
+    clearTimeout(timeout);
+
+    let data: unknown;
+    try {
+      data = await res.json();
+    } catch {
+      setErrorMessage(
+        `The server responded but didn't send back a valid answer (HTTP ${res.status}). This usually means the request took too long or the AI provider had an issue — try again, or try pasting a short excerpt of text instead to test.`
+      );
+      setStatus("error");
+      return;
+    }
+
+    if (!res.ok) {
+      const errorData = data as { error?: { message?: string; canPasteInstead?: boolean } };
+      setErrorMessage(errorData.error?.message || "Something went wrong analyzing this page.");
+      setSuggestPaste(!!errorData.error?.canPasteInstead);
+      setStatus("error");
+      return;
+    }
+
+    setReport(data as AnalysisReport);
+    setIsDemo(false);
+    setStatus("report");
   };
 
   const viewSampleReport = () => {

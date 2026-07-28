@@ -24,7 +24,10 @@ import type { AnalysisReport, Bucket, Finding } from "@/lib/types";
 
 // The pipeline makes two sequential LLM calls (analysis + rewrite) on top
 // of fetching the page, which can comfortably exceed Vercel's default
-// serverless timeout. Extend it (60s is the max on the Hobby plan).
+// serverless timeout. Extend it (60s is the max on the Hobby plan) and pin
+// the Node.js runtime explicitly (jsdom/cheerio aren't Edge-compatible, and
+// maxDuration semantics differ between runtimes).
+export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const MIN_WORD_COUNT = 40;
