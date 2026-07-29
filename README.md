@@ -33,7 +33,7 @@ Anthropic (Claude) takes priority.
 | `ANTHROPIC_API_KEY` | **Recommended.** Powers content-type detection, substance/structure/credibility scoring judgment, and the GEO rewrite generation via Claude. Requires billing set up at [console.anthropic.com](https://console.anthropic.com/). |
 | `ANTHROPIC_MODEL` | Optional, defaults to `claude-sonnet-5`. |
 | `OPENROUTER_API_KEY` | **Free-tier alternative, for testing only.** Routes the same two calls through a free model on [openrouter.ai](https://openrouter.ai/settings/keys) — no billing required. Quality (especially the rewrite) is noticeably lower than Claude, and the report shows a banner whenever this path is used. |
-| `OPENROUTER_MODEL` | Optional, defaults to `meta-llama/llama-3.3-70b-instruct:free`. Free models on OpenRouter change over time — if the default stops working, pick a current one from [openrouter.ai/models](https://openrouter.ai/models) (filter: "free"). |
+| `OPENROUTER_MODEL` | Optional. When unset, the app tries a short built-in list of free models in order and uses whichever one responds — free models on OpenRouter get retired or renamed with no warning, so this avoids a hard failure when one specific slug disappears. Set this to pin a single model instead (pick a current free one from [openrouter.ai/models](https://openrouter.ai/models), filter: "free"). |
 
 Without either key set, `/api/analyze` returns a clear `missing_api_key`
 error — the rest of the pipeline (fetch, content extraction, rules-based
