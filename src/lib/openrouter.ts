@@ -5,17 +5,14 @@ import type { LlmAnalysis } from "./claude";
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 // Free-tier OpenRouter models get retired or renamed with no warning (this
-// list has already broken once in production). If OPENROUTER_MODEL is set,
-// only that model is tried — otherwise fall through this list in order and
-// use the first one that actually responds, instead of hard-failing the
-// whole analysis because one specific free slug disappeared.
-const FALLBACK_FREE_MODELS = [
-  "meta-llama/llama-3.3-70b-instruct:free",
-  "meta-llama/llama-3.2-3b-instruct:free",
-  "mistralai/mistral-7b-instruct:free",
-  "qwen/qwen-2.5-72b-instruct:free",
-  "deepseek/deepseek-chat-v3.1:free",
-];
+// list has already broken twice in production — every one of the previous
+// candidates below was dead within the same day). If OPENROUTER_MODEL is
+// set, only that model is tried — otherwise fall through this list in order
+// and use the first one that actually responds, instead of hard-failing the
+// whole analysis because one specific free slug disappeared. Verified live
+// against openrouter.ai/models (filter: free) — confirm there again if this
+// list goes stale.
+const FALLBACK_FREE_MODELS = ["nvidia/nemotron-3-super-120b-a12b:free"];
 const MODELS_TO_TRY = process.env.OPENROUTER_MODEL ? [process.env.OPENROUTER_MODEL] : FALLBACK_FREE_MODELS;
 
 async function callOpenRouter(prompt: string, maxTokens: number): Promise<string> {
