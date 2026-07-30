@@ -44,7 +44,7 @@ export function ReportView({
         <FindingsSection title="Content Findings" findings={report.findings.content} />
         <FindingsSection title="Entity & Credibility Findings" findings={report.findings.credibility} />
         <FindingsSection title="Technical Findings" findings={report.findings.technical} />
-        <CompetitiveSection competitor={report.competitor} />
+        {report.competitor.available && <CompetitiveSection competitor={report.competitor} />}
         <ActionList actionItems={report.actionItems} />
       </div>
 

@@ -128,6 +128,15 @@ ${truncated}
 --- END PAGE CONTENT ---`;
 }
 
+const SCHEMA_TYPE_BY_CONTENT_TYPE: Record<ContentType, string> = {
+  definition: "Article",
+  comparison: "Article",
+  faq_support: "FAQPage",
+  product_pricing: "Product",
+  narrative_editorial: "BlogPosting",
+  local_business: "LocalBusiness",
+};
+
 export function buildRewritePrompt(
   extracted: ExtractedContent,
   contentType: ContentType,
@@ -135,6 +144,7 @@ export function buildRewritePrompt(
   url: string
 ): string {
   const truncated = extracted.textContent.slice(0, 12000);
+  const schemaType = SCHEMA_TYPE_BY_CONTENT_TYPE[contentType];
 
   const findingsSummary = findings
     .filter((f) => f.severity !== "pass")
@@ -159,7 +169,7 @@ Write a complete, ready-to-publish Markdown page following this anatomy (skip an
 5. A mini-FAQ: 3-5 tight Q&A pairs anticipating natural follow-ups.
 6. A credibility layer: author line (name + 1-2 line credential), organization details if relevant, "Last updated: [date]" with a one-line change note, and a scope/watch-outs line.
 7. Contextual CTAs placed at natural decision points in the content (not just top/bottom banners) — write the actual CTA copy inline where it belongs.
-8. A suggested schema block at the end as a markdown code comment, naming the schema.org type that matches this content type and what it should include (about/mentions entities, @id).
+8. A complete, valid, ready-to-paste JSON-LD block at the end, in a \`\`\`json fenced code block (not a description of what it should contain). Use "@type": "${schemaType}" and fill in real fields from the rewritten content above: headline/name, description, author, datePublished/dateModified, and "about"/"mentions" entities using the canonical names defined earlier in the page. For "FAQPage", include a "mainEntity" array built from the mini-FAQ section (each as a Question with an acceptedAnswer). For "Product", include "offers" if a price appears in the source, otherwise omit the offers field rather than inventing a price. Use the same no-fabrication rule as the rest of the rewrite: use "[insert verified value]" as a placeholder for any required field the source doesn't supply — never invent a date, price, or credential.
 
 On every major change/section, add an inline markdown comment tag showing tier, bucket, impact, effort, and owner, e.g.:
 <!-- Tier 1 · Content substance · High impact · Copy-only · Owner: Writer/SME -->
