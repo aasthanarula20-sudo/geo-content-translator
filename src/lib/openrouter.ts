@@ -13,9 +13,9 @@ const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 // against openrouter.ai/models (filter: free) — confirm there again if this
 // list goes stale.
 const FALLBACK_FREE_MODELS = ["nvidia/nemotron-3-super-120b-a12b:free"];
-const MODELS_TO_TRY = process.env.OPENROUTER_MODEL ? [process.env.OPENROUTER_MODEL] : FALLBACK_FREE_MODELS;
+const DEFAULT_MODELS_TO_TRY = process.env.OPENROUTER_MODEL ? [process.env.OPENROUTER_MODEL] : FALLBACK_FREE_MODELS;
 
-async function callOpenRouter(prompt: string, maxTokens: number): Promise<string> {
+async function callOpenRouter(prompt: string, maxTokens: number, modelOverride?: string): Promise<string> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
     throw new Error(
@@ -23,8 +23,12 @@ async function callOpenRouter(prompt: string, maxTokens: number): Promise<string
     );
   }
 
+  // An explicit override (e.g. from the model-comparison eval) skips the
+  // fallback list entirely — the caller asked for exactly one model.
+  const modelsToTry = modelOverride ? [modelOverride] : DEFAULT_MODELS_TO_TRY;
+
   let lastError: Error | null = null;
-  for (const model of MODELS_TO_TRY) {
+  for (const model of modelsToTry) {
     const res = await fetch(OPENROUTER_URL, {
       method: "POST",
       headers: {
@@ -62,10 +66,11 @@ async function callOpenRouter(prompt: string, maxTokens: number): Promise<string
 
 export async function analyzeContentWithOpenRouter(
   extracted: ExtractedContent,
-  url: string
+  url: string,
+  modelOverride?: string
 ): Promise<LlmAnalysis> {
   const prompt = buildAnalysisPrompt(extracted, url);
-  const text = await callOpenRouter(prompt, 4000);
+  const text = await callOpenRouter(prompt, 4000, modelOverride);
   return normalizeLlmAnalysis(extractJson(text));
 }
 
@@ -73,9 +78,10 @@ export async function generateRewriteWithOpenRouter(
   extracted: ExtractedContent,
   contentType: ContentType,
   findings: Finding[],
-  url: string
+  url: string,
+  modelOverride?: string
 ): Promise<string> {
   const prompt = buildRewritePrompt(extracted, contentType, findings, url);
-  const text = await callOpenRouter(prompt, 8000);
+  const text = await callOpenRouter(prompt, 8000, modelOverride);
   return text.trim();
 }

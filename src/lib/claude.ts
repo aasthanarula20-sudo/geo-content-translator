@@ -25,13 +25,14 @@ export type LlmAnalysis = NormalizedLlmAnalysis;
 
 export async function analyzeContentWithClaude(
   extracted: ExtractedContent,
-  url: string
+  url: string,
+  modelOverride?: string
 ): Promise<LlmAnalysis> {
   const anthropic = getClient();
   const prompt = buildAnalysisPrompt(extracted, url);
 
   const response = await anthropic.messages.create({
-    model: MODEL,
+    model: modelOverride || MODEL,
     max_tokens: 4000,
     messages: [{ role: "user", content: prompt }],
   });
@@ -48,13 +49,14 @@ export async function generateRewriteWithClaude(
   extracted: ExtractedContent,
   contentType: ContentType,
   findings: Finding[],
-  url: string
+  url: string,
+  modelOverride?: string
 ): Promise<string> {
   const anthropic = getClient();
   const prompt = buildRewritePrompt(extracted, contentType, findings, url);
 
   const response = await anthropic.messages.create({
-    model: MODEL,
+    model: modelOverride || MODEL,
     max_tokens: 8000,
     messages: [{ role: "user", content: prompt }],
   });
